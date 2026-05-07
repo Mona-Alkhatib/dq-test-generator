@@ -1,0 +1,11 @@
+.superpowers/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+data/jaffle_shop/dbt_project/jaffle_shop.duckdb
+data/jaffle_shop/dbt_project/target/
+data/jaffle_shop/dbt_project/dbt_packages/
+data/jaffle_shop/dbt_project/logs/
