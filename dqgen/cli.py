@@ -39,7 +39,7 @@ def generate(
     typer.echo(f"Profiling {table}...", err=True)
     profile = profile_table(warehouse, schema, name)
 
-    typer.echo(f"Calling Claude...", err=True)
+    typer.echo("Calling Claude...", err=True)
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     proposals = generate_proposed_tests(profile, client=client)
 
