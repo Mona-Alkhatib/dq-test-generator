@@ -1,7 +1,6 @@
 """Shared helpers for the eval harness."""
 from __future__ import annotations
 
-import csv
 import json
 import os
 from pathlib import Path
@@ -20,11 +19,3 @@ def fixture_dirs() -> list[Path]:
 
 def load_manifest(fixture: Path) -> dict:
     return json.loads((fixture / "manifest.json").read_text())
-
-
-def load_csv(path: Path) -> tuple[list[str], list[list[str]]]:
-    with path.open() as f:
-        reader = csv.reader(f)
-        header = next(reader)
-        rows = list(reader)
-    return header, rows

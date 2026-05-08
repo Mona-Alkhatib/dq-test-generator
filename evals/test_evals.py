@@ -21,7 +21,7 @@ import pytest
 from dqgen.generator import generate_proposed_tests
 from dqgen.profile import profile_table
 from dqgen.validator import validate_proposals
-from evals.conftest import HAS_KEY, fixture_dirs, load_csv, load_manifest
+from evals.conftest import HAS_KEY, fixture_dirs, load_manifest
 
 CATCH_RATE_THRESHOLD = 0.80
 
