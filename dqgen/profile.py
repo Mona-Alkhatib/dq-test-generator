@@ -36,6 +36,13 @@ def _is_numeric(dtype: str) -> bool:
     return base in NUMERIC_TYPES
 
 
+def _is_low_cardinality(distinct_count: int, row_count: int) -> bool:
+    if distinct_count <= 0 or distinct_count > LOW_CARDINALITY_DISTINCT_CAP:
+        return False
+    ratio = (distinct_count / row_count) if row_count else 0.0
+    return ratio <= LOW_CARDINALITY_RATIO_CAP
+
+
 def _columns(con: duckdb.DuckDBPyConnection, schema: str, name: str) -> list[tuple[str, str, bool]]:
     rows = con.execute(
         """
@@ -47,6 +54,32 @@ def _columns(con: duckdb.DuckDBPyConnection, schema: str, name: str) -> list[tup
         [schema, name],
     ).fetchall()
     return [(r[0], r[1], r[2] == "YES") for r in rows]
+
+
+def _numeric_stats(
+    con: duckdb.DuckDBPyConnection, qcol: str, qtable: str
+) -> tuple[Any, Any, float | None]:
+    min_v, max_v, mean_v = con.execute(
+        f"SELECT MIN({qcol}), MAX({qcol}), AVG({qcol}) FROM {qtable}"
+    ).fetchone()
+    return min_v, max_v, (float(mean_v) if mean_v is not None else None)
+
+
+def _top_values(
+    con: duckdb.DuckDBPyConnection, qcol: str, qtable: str
+) -> list[tuple[Any, int]]:
+    rows = con.execute(
+        f"""
+        SELECT {qcol}, COUNT(*) AS n
+        FROM {qtable}
+        WHERE {qcol} IS NOT NULL
+        GROUP BY {qcol}
+        ORDER BY n DESC, {qcol}
+        LIMIT ?
+        """,
+        [TOP_K],
+    ).fetchall()
+    return [(r[0], r[1]) for r in rows]
 
 
 def _profile_column(
@@ -69,30 +102,11 @@ def _profile_column(
     max_v: Any = None
     mean_v: float | None = None
     if _is_numeric(dtype):
-        row = con.execute(
-            f"SELECT MIN({qcol}), MAX({qcol}), AVG({qcol}) FROM {qtable}"
-        ).fetchone()
-        min_v, max_v, mean_v = row[0], row[1], (float(row[2]) if row[2] is not None else None)
+        min_v, max_v, mean_v = _numeric_stats(con, qcol, qtable)
 
     top_values: list[tuple[Any, int]] = []
-    ratio = (distinct_count / row_count) if row_count else 0.0
-    if (
-        distinct_count > 0
-        and distinct_count <= LOW_CARDINALITY_DISTINCT_CAP
-        and ratio <= LOW_CARDINALITY_RATIO_CAP
-    ):
-        rows = con.execute(
-            f"""
-            SELECT {qcol}, COUNT(*) AS n
-            FROM {qtable}
-            WHERE {qcol} IS NOT NULL
-            GROUP BY {qcol}
-            ORDER BY n DESC, {qcol}
-            LIMIT ?
-            """,
-            [TOP_K],
-        ).fetchall()
-        top_values = [(r[0], r[1]) for r in rows]
+    if _is_low_cardinality(distinct_count, row_count):
+        top_values = _top_values(con, qcol, qtable)
 
     return ColumnProfile(
         name=column,
