@@ -1,0 +1,11 @@
+{
+  "table": "customers",
+  "row_count_clean": 10,
+  "row_count_dirty": 14,
+  "defects": [
+    {"row_index": 11, "column": "customer_id", "violation": "null", "expected_test": "not_null"},
+    {"row_index": 12, "column": "email", "violation": "duplicate", "expected_test": "unique"},
+    {"row_index": 13, "column": "age", "violation": "negative", "expected_test": "dbt_utils.accepted_range"},
+    {"row_index": 14, "column": "age", "violation": "out_of_range", "expected_test": "dbt_utils.accepted_range"}
+  ]
+}
