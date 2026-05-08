@@ -1,0 +1,11 @@
+{
+  "table": "payments",
+  "row_count_clean": 10,
+  "row_count_dirty": 14,
+  "defects": [
+    {"row_index": 11, "column": "payment_id", "violation": "duplicate", "expected_test": "unique"},
+    {"row_index": 12, "column": "method", "violation": "unknown_value", "expected_test": "accepted_values"},
+    {"row_index": 13, "column": "amount_cents", "violation": "negative", "expected_test": "dbt_utils.accepted_range"},
+    {"row_index": 14, "column": "amount_cents", "violation": "out_of_range", "expected_test": "dbt_utils.accepted_range"}
+  ]
+}
