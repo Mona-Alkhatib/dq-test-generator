@@ -61,15 +61,18 @@ def _profile_as_user_text(profile: TableProfile) -> str:
     )
 
 
-def _parse_response_text(prefill: str, response_text: str) -> list[dict[str, Any]]:
-    """Stitch the prefill back onto the response and parse as JSON."""
+def _parse_json_array(prefill: str, response_text: str) -> list[dict[str, Any]]:
+    """Reattach the prefill and parse as JSON, trimming trailing chatter."""
     full = prefill + response_text
-    # Trim anything after the closing bracket of the top-level array.
     end = full.rfind("]")
     if end == -1:
         return []
-    candidate = full[: end + 1]
-    return json.loads(candidate)
+    return json.loads(full[: end + 1])
+
+
+def _extract_text(response: Any) -> str:
+    blocks = [b.text for b in response.content if getattr(b, "type", None) == "text"]
+    return "".join(blocks)
 
 
 def generate_proposed_tests(
@@ -78,23 +81,19 @@ def generate_proposed_tests(
     client: Any,
     model: str = MODEL,
 ) -> list[ProposedTest]:
-    user_text = _profile_as_user_text(profile)
     prefill = "["
-
     response = client.messages.create(
         model=model,
         max_tokens=MAX_TOKENS,
         system=SYSTEM_PROMPT,
         messages=[
-            {"role": "user", "content": user_text},
+            {"role": "user", "content": _profile_as_user_text(profile)},
             {"role": "assistant", "content": prefill},
         ],
     )
-    text_blocks = [b.text for b in response.content if getattr(b, "type", None) == "text"]
-    response_text = "".join(text_blocks)
 
     try:
-        parsed = _parse_response_text(prefill, response_text)
+        parsed = _parse_json_array(prefill, _extract_text(response))
     except json.JSONDecodeError:
         return []
 
